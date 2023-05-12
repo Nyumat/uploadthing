@@ -1,0 +1,199 @@
+import { Callout, Steps } from "nextra-theme-docs";
+
+# Getting Started
+
+Using vanilla React with UploadThing is easy! This guide will walk you through the steps to get started.
+
+## Context
+
+<Callout type="info">
+  This guide assumes you have a basic understanding of Express and React.js. If you don't, we recommend
+  checking out the [Express](https://expressjs.com/) and [React](https://reactjs.org/) documentation.
+</Callout>
+
+## Package Setup
+
+<Steps>
+
+### Install the packages:
+
+```bash copy
+npm install uploadthing express multer
+```
+
+
+### Add enviornment variables 
+
+```bash copy
+UPLOADTHING_SECRET=... # A secret key for your app (starts with sk_live_)
+```
+
+<Callout type="warning">
+  If you don't already have a uploadthing secret key, [sign up](/create-account) and create one from
+  the [dashboard!](https://uploadthing.com/dashboard)
+</Callout>
+</Steps>
+
+## Set up UploadThing in your Express.js app
+
+<Steps>
+
+### Create a new UploadThing instance
+
+```js
+const uploadthing = require("uploadthing");
+
+const upload = uploadthing({
+  secret: process.env.UPLOADTHING_SECRET,
+});
+```
+
+### Create a route to handle uploads
+
+```js
+app.post("/upload", upload.single("file"), (req, res) => {
+  res.json({ url: req.file.url });
+});
+```
+
+### Create a route to handle deletions
+
+```js
+app.delete("/upload/:id", async (req, res) => {
+  await upload.delete(req.params.id);
+  res.json({ success: true });
+});
+```
+
+### Create a route to handle fetching files
+
+```js
+app.get("/upload/:id", async (req, res) => {
+  const file = await upload.get(req.params.id);
+  res.json({ file });
+});
+```
+
+### Create a route to handle fetching all files
+
+```js
+app.get("/uploads", async (req, res) => {
+  const files = await upload.getAll();
+  res.json({ files });
+});
+```
+
+</Steps>
+
+<Callout>
+      With these routes, you can now upload, delete, and fetch files from your Express.js app!
+      We'll be able to integrate this with our React.js app in the next step.
+</Callout>
+
+## Connect UploadThing to your React.js app
+
+<Steps>
+### Install the packages:
+
+```bash copy
+npm install axios react-dropzone
+```
+
+### Create a new UploadThing instance
+
+```js
+import axios from "axios";
+import Dropzone from "react-dropzone";
+
+const upload = axios.create({
+  baseURL: "http://localhost:3000",
+});
+```
+
+### Create a component to handle uploads
+
+```js
+const Upload = () => {
+  const [files, setFiles] = useState([]);
+
+  const onDrop = useCallback(async (acceptedFiles) => {
+    const file = acceptedFiles[0];
+    const formData = new FormData();
+    formData.append("file", file);
+    const { data } = await upload.post("/upload", formData);
+    setFiles((files) => [...files, data]);
+  }, []);
+
+  const onDelete = useCallback(async (id) => {
+    await upload.delete(`/upload/${id}`);
+    setFiles((files) => files.filter((file) => file.id !== id));
+  }, []);
+
+  return (
+    <Dropzone onDrop={onDrop}>
+      {({ getRootProps, getInputProps }) => (
+        <div {...getRootProps()}>
+          <input {...getInputProps()} />
+          <p>Drag 'n' drop some files here, or click to select files</p>
+          {files.map((file) => (
+            <div key={file.id}>
+              <img src={file.url} alt={file.name} />
+              <button onClick={() => onDelete(file.id)}>Delete</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </Dropzone>
+  );
+};
+```
+
+### Create a component to handle fetching files
+
+```js
+const Files = () => {
+  const [files, setFiles] = useState([]);
+
+  useEffect(() => {
+    const fetchFiles = async () => {
+      const { data } = await upload.get("/uploads");
+      setFiles(data.files);
+    };
+    fetchFiles();
+  }, []);
+
+  return (
+    <div>
+      {files.map((file) => (
+        <img key={file.id} src={file.url} alt={file.name} />
+      ))}
+    </div>
+  );
+};
+
+```
+
+<Callout>
+      With these components, you can now upload, delete, and fetch files from your React.js app!
+</Callout>
+
+</Steps>
+
+
+## Next Steps 
+
+Now that you've set up UploadThing with Express and React, you can start building your app! Here are some
+resources to help you get started:
+
+- [UploadThing API Reference](/api-reference)
+
+- [UploadThing Dashboard](https://uploadthing.com/dashboard)
+
+- [UploadThing Guides](/guides)
+
+- [UploadThing Examples](/examples)
+
+- [UploadThing FAQ](/faq)
+
+- [UploadThing Support](/support)
+
